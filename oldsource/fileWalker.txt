@@ -1,0 +1,69 @@
+//procedure T1;
+//var
+//  FW: TFileWalker;
+//  T: TTimer;
+//  pass: Cardinal;
+//  P: TProgressMessage;
+//  FL: TStringList;
+//  TotalSize, LocalSize: UInt64;
+//begin
+//  FL := TStringList.Create;
+//  T := TTimer.Create;
+//  P := TProgressMessage.Create(procedure(var P: TProgressMessageParameters)
+//                               begin
+//                                 Console.Write('found ');
+//                                 Console.WriteFormatNumber(P[0]);
+//                                 Console.Write(' files and ');
+//                                 Console.WriteFormatNumber(P[1]);
+//                                 Console.Write(' folders (');
+//                                 Console.WriteFormatNumber(P[2]);
+//                                 Console.Write(' sec.)');
+//                               end, 1500);
+//
+//  TotalSize := 0;
+//  FW := TFileWalker.Create('Y:\Video', ALL_FILES_PATTERN,
+//                           [fwRecursive, fwFiles, fwFolders]);
+//  while FW.NextFile do
+//  begin
+//    P.SetParams(0, FW.FilesCount);
+//    P.SetParams(1, FW.FoldersCount);
+//    P.SetParams(2, T.Passed/1000);
+//
+//    P.Show(smNORMAL);
+//
+//    FL.Add(FW.FileInformation.Name);
+//    LocalSize := FW.FileInformation.Size;
+//    inc(TotalSize, LocalSize);
+//
+//    if FW.isFolder then
+//    begin
+//      writeln('FOLDER ', FW.FileInformation.Name);
+//    end else
+//    begin
+//      write( '  file: ', FW.FileInformation.Name );
+//      write( ', size: ', FW.FileInformation.Size );
+//      writeln;
+//    end;
+//
+//  end;
+//  P.Show(smDONE);
+//  P.Free;
+//  //
+//  Console.WriteLn;
+//
+//  pass := T.Passed;
+//  T.Free;
+//
+//  writeln('found ', FW.FilesCount, ' files, ', FW.FoldersCount, ' folders');
+//  writeln(format('passed: %.1f sec.', [pass/1000]));
+//  writeln('FL.files = ', FL.Count);
+//  writeln('FL.size = ', TotalSize);
+//
+//    FL.Free;
+//  // >> папка d:\music2
+//  // found 214741 files, 16685 folders
+//  // passed: 171,9 sec. (2,8 min.)
+//  // >> повторное сканирование d:\music2 -- 9,3 sec.
+//
+//  FW.Free;
+//end;

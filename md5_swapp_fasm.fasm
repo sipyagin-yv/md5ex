@@ -1,0 +1,148 @@
+        format  coff
+
+dig_a   equ     0*4
+dig_b   equ     1*4
+dig_c   equ     2*4
+dig_d   equ     3*4
+
+fret    equ     ebp             ; Регистр возвращаемого значения для элементарной функции
+
+_A      equ     ebx             ; Регистр хранения A
+_B      equ     ecx             ; Регистр хранения B
+_C      equ     esi             ; Регистр хранения C
+_D      equ     edi             ; Регистр хранения D
+
+blockr  equ     eax             ; Указатель на блок из 512 бит
+
+MACRO   _F      X, Y, Z
+{       ; Result := (X AND Y) OR ((NOT X) AND Z) (for calc. NEED one temp.regs)
+        ; Simplify_Result := ((Y XOR Z) AND X) XOR Z (for calc. NOT NEED temp.regs)
+        ; simplify: return z, if x = 0
+        ;           return y, if x = 1
+        mov     fret, Y
+        xor     fret, Z
+        and     fret, X
+        xor     fret, Z
+}
+
+MACRO   _G      X, Y, Z
+{       ; Result := (X AND Z) OR ((NOT Z) AND Y)
+        _F      Z, X, Y
+}
+
+MACRO   _H      X, Y, Z
+{       ; Result := X XOR Y XOR Z
+        mov     fret, X
+        xor     fret, Y
+        xor     fret, Z
+}
+
+MACRO   _I      X, Y, Z
+{       ; Result := Y XOR ((NOT Z) OR X)
+        mov     fret, Z
+        not     fret
+        or      fret, X
+        xor     fret, Y
+}
+
+MACRO   ROUND   _A, _B, _C, _D, _Index, _Shift, _Const, _Func
+{
+        add     _A, [blockr + _Index*4] ; read of X[k]
+        add     _A, _Const              ; +const
+        ;
+        _Func   _B, _C, _D
+        ;
+        ; Func(B, C, D) store calculated value into fret
+        ; A := B + ROL(A + Func(B, C, D) + X[k] + Ti, s);
+        add     _A, fret                ; + Func(B, C, D)
+        rol     _A, _Shift              ; ROL(..., s)
+        add     _A, _B                  ; + _B
+}
+
+;;; procedure MD5UpdateFastSwapp_FASM(P: PBlock512; State: PMD5Digest); register; external;
+PUBLIC  MD5UpdateFastSwapp_FASM
+MD5UpdateFastSwapp_FASM:
+        ; BlockPtr in EAX (PBlock512)
+        ; DigestPtr in EDX (PMD5Digest)
+        push    ebx ecx ebp esi edi
+        ; Загружаем значения A, B, C, D
+        mov     _A, [edx+dig_a]         ; A
+        mov     _B, [edx+dig_b]         ; B
+        mov     _C, [edx+dig_c]         ; C
+        mov     _D, [edx+dig_d]         ; D
+        ;
+        ROUND   _A, _B, _C, _D,  0,   7,  0D76AA478h, _F
+        ROUND   _D, _A, _B, _C,  1,  12,  0E8C7B756h, _F
+        ROUND   _C, _D, _A, _B,  2,  17,  0242070DBh, _F
+        ROUND   _B, _C, _D, _A,  3,  22,  0C1BDCEEEh, _F
+        ROUND   _A, _B, _C, _D,  4,   7,  0F57C0FAFh, _F
+        ROUND   _D, _A, _B, _C,  5,  12,  04787C62Ah, _F
+        ROUND   _C, _D, _A, _B,  6,  17,  0A8304613h, _F
+        ROUND   _B, _C, _D, _A,  7,  22,  0FD469501h, _F
+        ROUND   _A, _B, _C, _D,  8,   7,  0698098D8h, _F
+        ROUND   _D, _A, _B, _C,  9,  12,  08B44F7AFh, _F
+        ROUND   _C, _D, _A, _B, 10,  17,  0FFFF5BB1h, _F
+        ROUND   _B, _C, _D, _A, 11,  22,  0895CD7BEh, _F
+        ROUND   _A, _B, _C, _D, 12,   7,  06B901122h, _F
+        ROUND   _D, _A, _B, _C, 13,  12,  0FD987193h, _F
+        ROUND   _C, _D, _A, _B, 14,  17,  0A679438Eh, _F
+        ROUND   _B, _C, _D, _A, 15,  22,  049B40821h, _F
+        ;
+        ROUND   _A, _B, _C, _D,  1,   5,  0F61E2562h, _G
+        ROUND   _D, _A, _B, _C,  6,   9,  0C040B340h, _G 
+        ROUND   _C, _D, _A, _B, 11,  14,  0265E5A51h, _G
+        ROUND   _B, _C, _D, _A,  0,  20,  0E9B6C7AAh, _G
+        ROUND   _A, _B, _C, _D,  5,   5,  0D62F105Dh, _G
+        ROUND   _D, _A, _B, _C, 10,   9,  002441453h, _G
+        ROUND   _C, _D, _A, _B, 15,  14,  0D8A1E681h, _G
+        ROUND   _B, _C, _D, _A,  4,  20,  0E7D3FBC8h, _G
+        ROUND   _A, _B, _C, _D,  9,   5,  021E1CDE6h, _G
+        ROUND   _D, _A, _B, _C, 14,   9,  0C33707D6h, _G
+        ROUND   _C, _D, _A, _B,  3,  14,  0F4D50D87h, _G
+        ROUND   _B, _C, _D, _A,  8,  20,  0455A14EDh, _G
+        ROUND   _A, _B, _C, _D, 13,   5,  0A9E3E905h, _G
+        ROUND   _D, _A, _B, _C,  2,   9,  0FCEFA3F8h, _G
+        ROUND   _C, _D, _A, _B,  7,  14,  0676F02D9h, _G
+        ROUND   _B, _C, _D, _A, 12,  20,  08D2A4C8Ah, _G
+        ;
+        ROUND   _A, _B, _C, _D,  5,   4,  0FFFA3942h, _H
+        ROUND   _D, _A, _B, _C,  8,  11,  08771F681h, _H
+        ROUND   _C, _D, _A, _B, 11,  16,  06D9D6122h, _H
+        ROUND   _B, _C, _D, _A, 14,  23,  0FDE5380Ch, _H
+        ROUND   _A, _B, _C, _D,  1,   4,  0A4BEEA44h, _H
+        ROUND   _D, _A, _B, _C,  4,  11,  04BDECFA9h, _H
+        ROUND   _C, _D, _A, _B,  7,  16,  0F6BB4B60h, _H
+        ROUND   _B, _C, _D, _A, 10,  23,  0BEBFBC70h, _H
+        ROUND   _A, _B, _C, _D, 13,   4,  0289B7EC6h, _H
+        ROUND   _D, _A, _B, _C,  0,  11,  0EAA127FAh, _H
+        ROUND   _C, _D, _A, _B,  3,  16,  0D4EF3085h, _H
+        ROUND   _B, _C, _D, _A,  6,  23,  004881D05h, _H
+        ROUND   _A, _B, _C, _D,  9,   4,  0D9D4D039h, _H
+        ROUND   _D, _A, _B, _C, 12,  11,  0E6DB99E5h, _H
+        ROUND   _C, _D, _A, _B, 15,  16,  01FA27CF8h, _H
+        ROUND   _B, _C, _D, _A,  2,  23,  0C4AC5665h, _H
+        ;
+        ROUND   _A, _B, _C, _D,  0,   6,  0F4292244h, _I
+        ROUND   _D, _A, _B, _C,  7,  10,  0432AFF97h, _I
+        ROUND   _C, _D, _A, _B, 14,  15,  0AB9423A7h, _I
+        ROUND   _B, _C, _D, _A,  5,  21,  0FC93A039h, _I
+        ROUND   _A, _B, _C, _D, 12,   6,  0655B59C3h, _I
+        ROUND   _D, _A, _B, _C,  3,  10,  08F0CCC92h, _I
+        ROUND   _C, _D, _A, _B, 10,  15,  0FFEFF47Dh, _I
+        ROUND   _B, _C, _D, _A,  1,  21,  085845DD1h, _I
+        ROUND   _A, _B, _C, _D,  8,   6,  06FA87E4Fh, _I
+        ROUND   _D, _A, _B, _C, 15,  10,  0FE2CE6E0h, _I
+        ROUND   _C, _D, _A, _B,  6,  15,  0A3014314h, _I
+        ROUND   _B, _C, _D, _A, 13,  21,  04E0811A1h, _I
+        ROUND   _A, _B, _C, _D,  4,   6,  0F7537E82h, _I
+        ROUND   _D, _A, _B, _C, 11,  10,  0BD3AF235h, _I
+        ROUND   _C, _D, _A, _B,  2,  15,  02AD7D2BBh, _I
+        ROUND   _B, _C, _D, _A,  9,  21,  0EB86D391h, _I
+        ;
+        add     [edx+dig_a], _A
+        add     [edx+dig_b], _B
+        add     [edx+dig_c], _C
+        add     [edx+dig_d], _D
+        ;
+        pop     edi esi ebp ecx ebx
+        ret

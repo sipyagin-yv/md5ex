@@ -1,0 +1,189 @@
+procedure T1;
+var
+  R: TStringList;
+  L: TStringList;
+  S: String;
+  i: Integer;
+  S2: String;
+  p1,p2: String;
+  //
+  SourceFile: String;
+  FolderName: String;
+  FileName: String;
+const
+  BASE = 'D:\Video0\–¿«Œ¡–¿“‹1\';
+begin
+  R := TStringList.Create;
+  for i := 1 to 288 do
+  begin
+    SourceFile := 'checksums' + Format('%3d', [i]).Replace(' ', '0') + '.md5';
+    FolderName := Format('%3d', [i]).Replace(' ', '0');
+    if i = 156 then
+    begin
+      FolderName := FolderName + ' (long filenames)';
+    end;
+    //
+    FileName := BASE + FolderName + '\' + SourceFile;
+    writeln('add file ' + FileName);
+
+    L := TStringList.Create;
+    L.LoadFromFile(FileName);
+    R.Add('# checksums moved from file "'+FileName+'"');
+    for S in L do
+    begin
+      if NOT S.StartsWith('#') then
+      begin
+        if (S.Length>=34) AND (S[34]='*') then
+        begin
+          p1 := s.Substring(0,34);
+          p2 := FolderName + '/' + s.Substring(34);
+
+          S2 := p1 + p2;
+          R.Add(S2);
+        end;
+      end;
+    end;
+    L.Free;
+  end;
+  R.SaveToFile(BASE + 'CHK_TOTAL.md5', TEncoding.Unicode);
+  R.Free;
+  HALT;
+end;
+
+procedure T2;
+label l1;
+begin
+l1:
+// ‚ windows 7 ‚˚‚Ó‰ ÃŒ–√¿≈“!!!
+// ‚ windows 8 Ú‡ÍÊÂ ‚˚‚Ó‰ ÃŒ–√¿≈“!!!
+  console.WriteRepeat('=',60);
+
+  console.SetCursorXY(0, -1);
+//  console.WriteRepeat(#8,60);
+  goto l1;
+end;
+
+
+procedure T3;
+var
+  H: THandle;
+  M: THandle;
+  Lo,Hi: Cardinal;
+  Size: UInt64;
+  offset: uint64;
+  blocksize: cardinal;
+  P: Pointer;
+  MD5: TMD5Hash;
+  S: String;
+
+const
+  FILENAME = 'y:\_MD5TEST_\bigfile.dat';
+  MEGABYTE = 1024*1024;
+  MAP_BLOCK_SIZE = MEGABYTE * 2047;
+
+function FormatMessage(Code: Cardinal): String;
+var
+  Buffer: array[0..32000] of char;
+  R: DWORD;
+begin
+  R := FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM OR FORMAT_MESSAGE_MAX_WIDTH_MASK,
+                      nil, Code, 0, Buffer, Length(Buffer), nil);
+  if R = 0 then
+  begin
+    Result := Format('error message #%d not available', [Code]);
+  end else
+  begin
+    Result := Buffer;
+  end;
+end;
+
+function MakeUInt64(Hi, Lo: Cardinal): UInt64;
+begin
+  Int64Rec(Result).Lo := Lo;
+  Int64Rec(Result).Hi := Hi;
+end;
+
+procedure printf(const F: String; const A: array of const);
+begin
+  writeln(format(F, A));
+end;
+
+begin
+  H := CreateFile(FILENAME, GENERIC_READ, FILE_SHARE_READ,
+                  nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+  if H <> INVALID_HANDLE_VALUE then
+  begin
+    printf('File "%s" opened, handle = 0x%X.', [FILENAME, H]);
+    //
+    Lo := Windows.GetFileSize(H, @Hi);
+    if (Lo <> INVALID_FILE_SIZE) OR (GetLastError = 0) then
+    begin
+      Size := MakeUInt64(Hi, Lo);
+      printf('File size is %d bytes', [Size]);
+      //
+      M := CreateFileMapping(H, nil, PAGE_READONLY, Hi, Lo, nil);
+      if M <> 0 then
+      begin
+        printf('CreateFileMapping success, handle = 0x%X', [M]);
+        printf('* params: hi = 0x%X, lo = 0x%X, hi:lo = 0x%X (%d).', [M, Hi, Lo, Size, Size]);
+        //
+        MD5 := TMD5Hash.Create;
+        offset := 0;
+        while offset < Size do
+        begin
+          blocksize := System.Math.Min(Size-Offset, MAP_BLOCK_SIZE);
+          P := MapViewOfFile(M, FILE_MAP_READ,
+                             Int64Rec(offset).Hi,
+                             Int64Rec(offset).Lo,
+                             blocksize);
+          //
+          MD5.Update(P, blocksize);
+          //
+          UnmapViewOfFile(P);
+          //
+          inc(offset, blocksize);
+        end;
+        S := MD5.Done;
+        MD5.Free;
+        printf('MD5 of file is "%s"', [S]);
+
+        CloseHandle(M);
+      end else
+      begin
+        printf('CreateFileMapping error [%s]', [FormatMessage(GetLastError)]);
+      end;
+      CloseHandle(H);
+    end else
+    begin
+      printf('GetFileSize error [%s]', [FormatMessage(GetLastError)]);
+    end;
+  end else
+  begin
+    printf('CreateFile error [%s]', [FormatMessage(GetLastError)]);
+  end;
+
+  HALT;
+
+end;
+
+procedure T4;
+var
+  Size: TBoxing<UInt64>;
+begin
+  Size := TBoxing<UInt64>.Create(100);
+
+  Size.Free;
+end;
+
+
+//T1;
+//T2;
+//T3;
+//T4;
+//writeln(Format('[%.6d]', [1380]));
+//  writeln(1.2);
+//  Console.WriteFormatNumberSize(ATTR_NUMBER, 1*1024*1024*1024+500000000);
+//  Console.WriteLn;
+//ShowTimeStatistics(1000000000, 4233599999);
+//ShowTimeStatistics(1000000000, (0*86400+0*3600+2*60+59)*1000);
+

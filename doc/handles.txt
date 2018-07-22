@@ -1,0 +1,30 @@
+﻿    // Открываем файл и читаем его
+    H1 := CreateFile(PChar(FileName),
+                     GENERIC_READ,
+                     FILE_SHARE_READ,
+                     NIL,
+                     OPEN_EXISTING,
+                     FILE_ATTRIBUTE_NORMAL,
+                     0);
+    H2 := CreateFile(PChar(FileName),
+                     GENERIC_READ,
+                     FILE_SHARE_READ,
+                     NIL,
+                     OPEN_EXISTING,
+                     FILE_ATTRIBUTE_NORMAL,
+                     0);
+
+    H3 := CreateFile(PChar(FileName),
+                     GENERIC_READ,
+                     FILE_SHARE_READ,
+                     NIL,
+                     OPEN_EXISTING,
+                     FILE_ATTRIBUTE_NORMAL,
+                     0);
+
+
+
+    CloseHandle(H3);
+    CloseHandle(H2);
+    CloseHandle(H1);
+
