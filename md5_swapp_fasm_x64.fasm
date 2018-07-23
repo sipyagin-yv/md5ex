@@ -1,3 +1,5 @@
+        ; by YS, 2014
+        ; from x86 version, replace eax to rax, edx to rdx
         format  ms64 coff
        
 dig_a   equ     0*4

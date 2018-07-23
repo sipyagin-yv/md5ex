@@ -1,3 +1,5 @@
+        ; by YS, 2014
+        ; from project HASH calculator
         format  coff
 
 dig_a   equ     0*4
